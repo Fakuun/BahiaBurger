@@ -27,38 +27,36 @@
 </header>
 
 <main>
-  <!-- VISTA 1: INICIO -->
-  <section class="view is-active" id="view-inicio" data-view="inicio">
-    <div class="hero">
-      <div class="status" id="status" role="status" aria-live="polite">
-        <span class="status__badge" id="statusBadge">● …</span>
-        <span class="status__hours" id="statusHours"></span>
-      </div>
-      <h1 class="hero__title">Hamburguesas que se piden de a dos.</h1>
-      <p class="hero__text">Armá tu pedido en un minuto, lo recibimos por WhatsApp y lo llevamos hasta tu puerta.</p>
-      <button class="btn btn--primary" data-nav="carta">Comenzar pedido / Ver carta</button>
-      <p class="hero__note">Por el momento, solo delivery.</p>
+  <section class="hero" id="inicio">
+    <div class="status" id="status" role="status" aria-live="polite">
+      <span class="status__badge" id="statusBadge">● …</span>
+      <span class="status__hours" id="statusHours"></span>
     </div>
-
-    <section class="gallery" aria-label="Nuestras hamburguesas">
-      <div class="carousel" id="carousel" tabindex="0" aria-roledescription="carrusel">
-        <div class="carousel__track" id="carouselTrack"></div>
-        <button class="carousel__arrow carousel__arrow--prev" id="prevBtn" aria-label="Anterior">‹</button>
-        <button class="carousel__arrow carousel__arrow--next" id="nextBtn" aria-label="Siguiente">›</button>
-      </div>
-      <div class="carousel__dots" id="carouselDots"></div>
-    </section>
+    <h1 class="hero__title">Hamburguesas que se piden de a dos.</h1>
+    <p class="hero__text">Armá tu pedido en un minuto, lo recibimos por WhatsApp y lo llevamos hasta tu puerta.</p>
+    <button class="btn btn--primary" data-nav="carta">Comenzar pedido / Ver carta</button>
+    <p class="hero__note">Por el momento, solo delivery.</p>
   </section>
 
-  <!-- VISTA 2: CARTA (se desarrolla en la Etapa 2) -->
-  <section class="view" id="view-carta" data-view="carta">
-    <div class="soon">
-      <h2>Carta virtual</h2>
-      <p>Esta pantalla se arma en la Etapa 2.</p>
-      <button class="btn btn--ghost" data-nav="inicio">Volver al inicio</button>
+  <section class="gallery" aria-label="Nuestras hamburguesas">
+    <div class="carousel" id="carousel" tabindex="0" aria-roledescription="carrusel">
+      <div class="carousel__track" id="carouselTrack"></div>
+      <button class="carousel__arrow carousel__arrow--prev" id="prevBtn" aria-label="Anterior">‹</button>
+      <button class="carousel__arrow carousel__arrow--next" id="nextBtn" aria-label="Siguiente">›</button>
     </div>
+    <div class="carousel__dots" id="carouselDots"></div>
+  </section>
+
+  <section class="carta" id="carta">
+    <div class="carta__head">
+      <h2>Carta virtual</h2>
+      <p>Elegí tu hamburguesa, combo o acompañamiento.</p>
+    </div>
+    <div class="tabs" id="tabs" role="tablist" aria-label="Categorías"></div>
+    <div class="menu-grid" id="menuGrid"></div>
   </section>
 </main>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <!-- FOOTER DE CONTACTO (persistente) -->
 <footer class="footer" id="contacto">
@@ -76,6 +74,7 @@
   <p class="footer__legal">© <span id="year"></span> Bahía Burger</p>
 </footer>
 
+<script src="menuData.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
