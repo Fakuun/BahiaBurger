@@ -5,11 +5,11 @@
    ========================================================= */
 const CONFIG = {
   nombre: 'Bahía Burger',
-  whatsapp: '5493442000000',          // formato internacional, sin + ni espacios
-  whatsappVisible: '+54 9 3442 00-0000',
-  instagram: 'bahiaburger',
-  direccion: 'Concepción del Uruguay, Entre Ríos',
-  zonaHoraria: 'America/Argentina/Buenos_Aires',
+  whatsapp: '59898110272',          // formato internacional, sin + ni espacios
+  whatsappVisible: '+598 98110272',
+  instagram: 'bahia_burger_',
+  direccion: 'Paysandu, Uruguay',
+  zonaHoraria: 'America/Uruguay/Montevideo',
   // Días: 0=Domingo, 1=Lunes ... 6=Sábado. "cierra: 24" = medianoche.
   horario: { dias: [4, 5, 6, 0], abre: 20, cierra: 24 },
 };
@@ -87,31 +87,81 @@ function renderContacto() {
 }
 
 /* =========================================================
-   ROUTER SPA (sin recargar)
+   NAVEGACIÓN (una sola página con scroll suave)
    ========================================================= */
-const Router = {
-  vistas: ['inicio', 'carta'],
-  ir(destino) {
-    if (destino === 'contacto') {
-      $('#contacto').scrollIntoView({ behavior: 'smooth' });
-      return;
-    }
-    if (!this.vistas.includes(destino)) destino = 'inicio';
-    $$('.view').forEach((v) => v.classList.toggle('is-active', v.dataset.view === destino));
-    $$('.nav__links a').forEach((a) => a.classList.toggle('is-active', a.dataset.nav === destino));
-    window.scrollTo({ top: 0 });
-    if (location.hash !== '#' + destino) history.pushState(null, '', '#' + destino);
-    if (destino === 'inicio') Carrusel.iniciar(); else Carrusel.pausar();
-  },
+const Nav = {
+  secciones: ['inicio', 'carta', 'contacto'],
   init() {
     document.addEventListener('click', (e) => {
       const el = e.target.closest('[data-nav]');
       if (!el) return;
       e.preventDefault();
-      this.ir(el.dataset.nav);
+      const id = el.dataset.nav;
+      $('#' + id).scrollIntoView({ behavior: 'smooth' });
+      history.replaceState(null, '', '#' + id);
     });
-    window.addEventListener('popstate', () => this.ir(location.hash.slice(1) || 'inicio'));
-    this.ir(location.hash.slice(1) || 'inicio');
+    // Marca el enlace de la sección que se está viendo
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach((en) => {
+        if (!en.isIntersecting) return;
+        $$('.nav__links a').forEach((a) => a.classList.toggle('is-active', a.dataset.nav === en.target.id));
+      });
+    }, { rootMargin: '-40% 0px -55% 0px' });
+    this.secciones.forEach((id) => obs.observe($('#' + id)));
+  },
+};
+
+/* =========================================================
+   CARTA VIRTUAL (se dibuja desde menuData.js)
+   ========================================================= */
+const money = (n) => '$' + n.toLocaleString('es-AR');
+const Carta = {
+  filtro: 'todos',
+  init() {
+    $('#tabs').innerHTML = MENU.categorias.map((c) =>
+      `<button class="tab" role="tab" data-cat="${c.id}">${c.nombre}</button>`).join('');
+    $('#tabs').addEventListener('click', (e) => {
+      const t = e.target.closest('.tab');
+      if (t) { this.filtro = t.dataset.cat; this.render(); }
+    });
+    $('#menuGrid').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-add]');
+      if (b) this.personalizar(b.dataset.add);
+    });
+    this.render();
+  },
+  render() {
+    $$('.tab').forEach((t) => {
+      const on = t.dataset.cat === this.filtro;
+      t.classList.toggle('is-active', on);
+      t.setAttribute('aria-selected', on);
+    });
+    const lista = MENU.productos.filter((p) => this.filtro === 'todos' || p.cat === this.filtro);
+    $('#menuGrid').innerHTML = lista.map((p) => {
+      const esBurger = p.cat === 'hamburguesas';
+      const precio = esBurger ? `Desde ${money(MENU.tamanos[0].precio)}` : money(p.precio);
+      const foto = p.img ? `<img src="${p.img}" alt="${p.nombre}" loading="lazy">` : `<div class="slide__ph">${ICONO_BURGER}</div>`;
+      return `<article class="card">
+        <div class="card__img">${foto}</div>
+        <div class="card__body">
+          <h3 class="card__name">${p.nombre}</h3>
+          <p class="card__desc">${p.ingredientes.join(', ')}.</p>
+          <div class="card__foot"><span class="card__price">${precio}</span>
+            <button class="btn btn--primary" data-add="${p.id}">Agregar / Personalizar</button></div>
+        </div></article>`;
+    }).join('');
+  },
+  personalizar(id) {
+    // ETAPA 2 (siguiente paso): abre el modal de personalización
+    Toast.mostrar('La personalización llega en el próximo paso.');
+  },
+};
+
+const Toast = {
+  t: null,
+  mostrar(msg) {
+    const el = $('#toast'); el.textContent = msg; el.classList.add('is-on');
+    clearTimeout(this.t); this.t = setTimeout(() => el.classList.remove('is-on'), 2500);
   },
 };
 
@@ -134,30 +184,22 @@ const Carrito = {
 const ICONO_BURGER = `<svg viewBox="0 0 64 64" fill="none" stroke="#FFA300" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 28c0-11 10-18 24-18s24 7 24 18z"/><path d="M6 36h52"/><path d="M8 43h48"/><path d="M10 50c0 4 4 6 8 6h28c4 0 8-2 8-6z"/></svg>`;
 
 const Carrusel = {
-  i: 0, timer: null, intervalo: 4500,
+  i: 0, pv: 1, timer: null, intervalo: 4500,
+  porVista() { return innerWidth >= 1000 ? 3 : innerWidth >= 640 ? 2 : 1; },
+  max() { return Math.max(0, GALERIA.length - this.pv); },
   init() {
     const track = $('#carouselTrack');
-    const dots = $('#carouselDots');
     GALERIA.forEach((s, idx) => {
       const slide = document.createElement('div');
       slide.className = 'slide';
-      slide.setAttribute('role', 'group');
-      slide.setAttribute('aria-label', `${idx + 1} de ${GALERIA.length}`);
       slide.innerHTML = (s.img
-        ? `<img src="${s.img}" alt="${s.nombre}" loading="${idx ? 'lazy' : 'eager'}">`
+        ? `<img src="${s.img}" alt="${s.nombre}" loading="${idx < 3 ? 'eager' : 'lazy'}">`
         : `<div class="slide__ph">${ICONO_BURGER}</div>`) +
         `<div class="slide__caption"><strong>${s.nombre}</strong><span>${s.detalle}</span></div>`;
       track.appendChild(slide);
-
-      const dot = document.createElement('button');
-      dot.setAttribute('aria-label', `Ir a ${s.nombre}`);
-      dot.addEventListener('click', () => { this.mostrar(idx); this.iniciar(); });
-      dots.appendChild(dot);
     });
-
     $('#prevBtn').addEventListener('click', () => { this.mostrar(this.i - 1); this.iniciar(); });
     $('#nextBtn').addEventListener('click', () => { this.mostrar(this.i + 1); this.iniciar(); });
-
     const car = $('#carousel');
     car.addEventListener('mouseenter', () => this.pausar());
     car.addEventListener('mouseleave', () => this.iniciar());
@@ -165,8 +207,6 @@ const Carrusel = {
       if (e.key === 'ArrowLeft') this.mostrar(this.i - 1);
       if (e.key === 'ArrowRight') this.mostrar(this.i + 1);
     });
-
-    // Deslizar con el dedo
     let x0 = null;
     car.addEventListener('touchstart', (e) => { x0 = e.touches[0].clientX; this.pausar(); }, { passive: true });
     car.addEventListener('touchend', (e) => {
@@ -176,13 +216,27 @@ const Carrusel = {
       }
       x0 = null; this.iniciar();
     });
-
-    this.mostrar(0);
+    addEventListener('resize', () => this.layout());
+    this.layout();
+    this.iniciar();
+  },
+  layout() {
+    this.pv = this.porVista();
+    $('#carouselTrack').style.setProperty('--pv', this.pv);
+    const dots = $('#carouselDots');
+    dots.innerHTML = '';
+    for (let n = 0; n <= this.max(); n++) {
+      const d = document.createElement('button');
+      d.setAttribute('aria-label', `Ir a la posición ${n + 1}`);
+      d.addEventListener('click', () => { this.mostrar(n); this.iniciar(); });
+      dots.appendChild(d);
+    }
+    this.mostrar(Math.min(this.i, this.max()));
   },
   mostrar(n) {
-    const total = GALERIA.length;
-    this.i = (n + total) % total;
-    $('#carouselTrack').style.transform = `translateX(-${this.i * 100}%)`;
+    const max = this.max();
+    this.i = n > max ? 0 : n < 0 ? max : n;
+    $('#carouselTrack').style.transform = `translateX(-${this.i * (100 / this.pv)}%)`;
     $$('#carouselDots button').forEach((d, idx) => d.classList.toggle('is-active', idx === this.i));
   },
   iniciar() {
@@ -214,5 +268,6 @@ document.addEventListener('DOMContentLoaded', () => {
   setInterval(renderEstado, 60 * 1000);   // se actualiza solo cada minuto
   Carrito.renderContador();
   Carrusel.init();
-  Router.init();
+  Carta.init();
+  Nav.init();
 });
